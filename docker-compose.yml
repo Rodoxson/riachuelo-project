@@ -1,0 +1,52 @@
+
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  warehouseapp:
+    build:
+      context: ./warehouse
+      dockerfile: Dockerfile
+    image: riachuelo/warehouse:latest
+    container_name: warehouseapp
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      # Pode manter o perfil default, pois application.properties está pronto para uso em container
+      - SPRING_PROFILES_ACTIVE=
+
+  storefront:
+    build:
+      context: ./storefront
+      dockerfile: Dockerfile
+    image: riachuelo/storefront:latest
+    container_name: storefront
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      warehouseapp:
+        condition: service_started
+    ports:
+      - "8081:8081"
+    environment:
+      # Usa o profile default que já aponta para rabbitmq e warehouseapp
+      - SPRING_PROFILES_ACTIVE=
+
+# A rede default do Compose permite que os serviços se resolvam por nome,
+# garantindo que o hostname "warehouseapp" funcione para o storefront.
