@@ -1,0 +1,113 @@
+Roteiro de Teste Ponta a Ponta - Storefront & Warehouse
+
+0) Pré-requisitos
+
+-   Storefront Swagger: http://localhost:8081/swagger-ui/index.html
+-   Warehouse Swagger: http://localhost:8080/swagger-ui/index.html
+-   RabbitMQ UI: http://localhost:15672 (user: guest, senha: guest)
+-   H2 Console (Warehouse): http://localhost:8080/h2-console
+-   H2 Console (Storefront, opcional): http://localhost:8081/h2-console
+
+------------------------------------------------------------------------
+
+1) Subir containers
+
+    docker-compose down -v
+    docker-compose up --build
+
+Verificar logs até aparecer: - “Started StorefrontApplication” -
+“Started WarehouseApplication” - RabbitMQ ativo.
+
+------------------------------------------------------------------------
+
+2) Inserir produto no Warehouse
+
+Se não houver endpoint de criação, usar o H2:
+
+    INSERT INTO products (id, sku, name, price, stock)
+    VALUES ('b6a0b1a8-9d2e-4f2f-8a0d-02e9e2a11111', 'SKU-TEST-001', 'Controle Gamer', 199.90, 5);
+
+------------------------------------------------------------------------
+
+3) Validar produto no Warehouse
+
+GET
+http://localhost:8080/warehouse/products/b6a0b1a8-9d2e-4f2f-8a0d-02e9e2a11111
+
+Esperado:
+
+    {
+      "id": "b6a0b1a8-9d2e-4f2f-8a0d-02e9e2a11111",
+      "sku": "SKU-TEST-001",
+      "name": "Controle Gamer",
+      "price": 199.90,
+      "stock": 5
+    }
+
+------------------------------------------------------------------------
+
+4) Validar integração via Storefront
+
+GET
+http://localhost:8081/storefront/products/b6a0b1a8-9d2e-4f2f-8a0d-02e9e2a11111
+
+Esperado: mesmo JSON vindo do Warehouse.
+
+------------------------------------------------------------------------
+
+5) Realizar compra no Storefront
+
+POST
+http://localhost:8081/storefront/products/b6a0b1a8-9d2e-4f2f-8a0d-02e9e2a11111/purchase
+
+Body:
+
+    { "quantity": 2 }
+
+Esperado: - Status 200/201/202. - Logs do Storefront mostrando
+publicação no RabbitMQ.
+
+------------------------------------------------------------------------
+
+6) Confirmar RabbitMQ
+
+Abrir RabbitMQ UI → Queues → productChangeAvailabilityQueue.
+
+Esperado: - Mensagem publicada e consumida. - Publish/Deliver > 0.
+
+------------------------------------------------------------------------
+
+7) Validar estoque no Warehouse
+
+    SELECT id, sku, name, stock
+    FROM products
+    WHERE id = 'b6a0b1a8-9d2e-4f2f-8a0d-02e9e2a11111';
+
+Esperado: stock = 3 (5 – 2).
+
+------------------------------------------------------------------------
+
+8) Validar leitura pós-compra no Storefront
+
+GET
+http://localhost:8081/storefront/products/b6a0b1a8-9d2e-4f2f-8a0d-02e9e2a11111
+
+Esperado: produto atualizado com stock: 3.
+
+------------------------------------------------------------------------
+
+9) Cenários de erro
+
+-   Compra maior que estoque (quantity: 99) → erro (400/409).
+-   Produto inexistente (UUID aleatório) → erro (404).
+
+------------------------------------------------------------------------
+
+10) Observabilidade
+
+Logs em tempo real:
+
+    docker-compose logs -f warehouse
+    docker-compose logs -f storefrontapp
+
+Verificar consumo de mensagens e queries SQL.
