@@ -19,7 +19,7 @@
 * [Dockerfile — explicação](#dockerfile--explicação-multi-stage)
 * [Dicas para desenvolvimento (hot reload)](#dicas-para-desenvolvimento-hot-reload)
 * [Testes automatizados](#testes-automatizados)
-* [Contribuição / Contato](#contribuição--contato)
+* [Contribuição](#contribuição)
 * [Licença](#licença)
 
 ---
@@ -263,11 +263,11 @@ services:
 
 ---
 
-## Contribuição / Contato
+## Contribuição 
 
 * Abra *issues* para reportar bugs ou sugerir melhorias.
 * Para alterações na arquitetura ou funcionalidades, proponha PRs detalhando as mudanças e roteiro de testes.
-* Contato: [rodolfo@example.com](mailto:rodolfo@example.com) (ou substituir pelo email real do responsável).
+
 
 ---
 
